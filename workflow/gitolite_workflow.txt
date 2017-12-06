@@ -1,0 +1,168 @@
+
+
+
+		Git workflow for releasing changes to batch servers
+
+
+Official project repository hosted at https://gitolite.ucop.edu/git/<repo_path>
+
+Branches:
+production - deploys to production server.  reject pushes by developers.  
+	     allow merge of tags only.
+staging    - developers stage release tags.
+qa         - deploys to qa server.  permit pushes by developers.
+dev        - deploys to dev server.  permit pushes by developers.
+
+
+Deployment repos on batch servers:
+
+prod server - checkout production remote tracking branch only
+qa server   - checkout qa remote tracking branch
+dev server  - checkout dev remote tracking branch
+
+
+Repo Customizations:
+
+.gitignore
+.git_hook_setup.sh
+.git_permissions.sh
+
+
+
+
+___________________________
+Install git on a windows PC
+
+https://git-scm.com/download/win
+
+I selected the defualts except for:
+  install location: C:\Users\agould\Git
+  additional icons: "on the desktop"
+
+
+
+
+_____________________________________
+Set up local repository for developer
+
+list gitolite repos:
+  curl -k -u <username> https://gitolite.ucop.edu/git/info
+
+clone gitolite repo:
+  git clone https://<username>@gitolite.ucop.edu/git/<repo_path>
+
+configure local repo:
+  git config --global user.name <username>
+  git config --global user.email <email address>
+  git config http.sslverify false
+
+create remote tracking branches:
+  git branch dev origin/dev
+  git branch qa origin/qa
+  git branch staging origin/staging
+  (production created during cloning)
+
+query refs (tags, branches):
+  git remote show origin
+  git branch -avv
+  git tag -ln
+
+
+
+__________________
+Developer workflow
+
+create topic branch
+  git checkout staging
+  git pull
+  git checkout -b mytopic staging
+
+[optional] push topic branch to remote if you need to share it with coworkers.
+  git add .
+  git commit
+  git push origin mytopic:mytopic
+
+merge topic branch into dev branch
+  git checkout dev
+  git pull
+  git merge mytopic
+  git push
+
+deploy topic branch on dev server
+  ssh <dev server>
+  sudo su - <roleuser>
+  cd <working_tree>
+  git checkout dev
+  git pull
+  logout
+
+merge topic branch into qa branch
+  git checkout qa
+  git pull
+  git merge mytopic
+  git push
+
+deploy topic branch on qa server
+  ssh <qa server>
+  sudo su - <roleuser>
+  cd <working_tree>
+  git checkout qa
+  git pull
+  logout
+
+create release tag
+  git checkout mytopic
+  git tag -a -m '<release_comment>' <release_number> 
+
+merge tag into staging branch and push branch and new tag to remote
+  git checkout staging
+  git pull
+  git merge <release_number>
+  git push --tags
+  git push staging
+
+delete topic branch in local repo
+  git checkout staging
+  git branch -d mytopic
+
+[optional] delete branch on remote repo if you ever pushed it there
+  git push origin :mytopic
+
+create SN RFC to deploy release tag on production server
+
+
+
+_____________________
+Release Mgmt workflow
+
+deploy release tag onto production server
+  ssh <prod server>
+  sudo su - <roleuser>
+  cd <working_tree>
+  git fetch <remote>
+  git tag -ln
+  git checkout production
+  git merge <release_number>
+
+push production branch to remote
+  git push
+  logout
+
+
+
+__________________
+Rollback workflow
+
+checkout previous release on production server
+  ssh <prod server>
+  sudo su - <roleuser>
+  cd <working_tree>
+  git checkout production
+  git tag -ln
+  git revert <previous_release_number>
+
+push reverted branch to remote
+  git push
+  logout
+
+

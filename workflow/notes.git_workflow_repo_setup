@@ -1,0 +1,74 @@
+________________________________________________________________________________
+5/25/2017
+
+Generate role user ssh keys on each server in the workflow and install them
+in gitolite-admin repo:
+
+  # using css user as example
+  # repeat for qahost, prodhost
+  ssh devhost 
+  sudo su - css
+  ssh-keygen -t
+  scp .ssh/id_rsa.pub agould@gitolite:~/gitolite-admin/keydir/css_dev.pub
+
+
+Setup new repo config in gitolite-admin repo:
+
+  @easCorpsysUsers = pchakrab bfarmer cdelossa ashely
+  @cssUsers = css_dev css_qa css_prod kmalipat chandy
+  repo eas-corpsys/css
+    RW+             =   @unixGroup
+    RW              =   css_prod
+    -   production  =   @cssUsers @easCorpsysUsers    
+    RW              =   @cssUsers @easCorpsysUsers
+
+
+Commit and push gitolite-admin repo. This creates a new bare repository on
+gitolite server:
+
+  cd gitolite-admin
+  git add .
+  git commit -m'new repo and keys for eas-corpsys/css'
+  git push origin master
+
+
+Generate workflow branch structure. branches are [dev qa staging production]:
+
+  ~/git-repos> git clone git@gitolite:eas-corpsys/css
+  ~/git-repos> cd css
+  ~/git-repos/css> vi .gitignore
+  ~/git-repos/css> git add .
+  ~/git-repos/css> git commit -m'initial commit'
+  ~/git-repos/css> git branch -m master staging
+  ~/git-repos/css> git branch dev staging
+  ~/git-repos/css> git branch qa staging
+  ~/git-repos/css> git branch production staging
+  ~/git-repos/css> git push origin dev:dev
+  ~/git-repos/css> git push origin qa:qa
+  ~/git-repos/css> git push origin staging:staging
+  ~/git-repos/css> git push origin production:production
+
+
+Set 'staging' as default branch on gitolite server:
+
+  ssh gitolite.ucop.edu
+  sudo su - git
+  cd repositories/eas-corpsys/css.git/
+  git symbolic-ref HEAD refs/heads/staging
+
+
+Set up git repo and remote for role user on each server in workflow.  Create
+only the local branch correspoding to server's position in the workflow:
+
+  # repeat for qahost, prodhost
+  ssh devhost
+  sudo su - css
+  cd project_dir
+  git init
+  git config user.name "css_dev"
+  git config user.email "css@devhost"
+  git remote add eas-corpsys/css git@gitolite.ucop.edu:eas-corpsys/css
+  git fetch
+  git checkout -b dev eas-corpsys/css/dev
+
+
