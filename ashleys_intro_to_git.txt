@@ -325,7 +325,7 @@ Example:
 _______
 Tagging
 
-Tools: tag show
+Tools: tag show describe
 
 Tagging lets you create a perminant point-in-time reference to a specific
 commit.  Typically people use this functionality to mark release points (v1.0,
@@ -334,14 +334,25 @@ and so on).
 There are 2 types of tags.  A "lightweight" tag is simply a reference to a
 commit.  It is like a branch that doesn't change.  Whereas "annotated" tags
 contain a creation date, the tagger name and e-mail, a tagging message, and an
-optional GnuPG signature.
+optional GnuPG signature. Use `git show` to display annotated tag metadata.
+
+`git describe` returns a human readable name for a ref based on the most recent
+tag that is reachable from a commit.  If the tag points to the commit, then
+only the tag is shown. Otherwise, it suffixes the tag name with the number of
+additional commits on top of the tagged object and the abbreviated object name
+of the most recent commit (e.g. "v1.0.5-3-68e47d7")
 
 Example workflow:
   git checkout staging
-  git tag -a -m'release candidate rc1.06' v1.06
-  git show v1.06
+  git describe staging		# "v1.0.5-3-68e47d7"
+				# 3 commits since previous release
+  git tag v1.0.6rc1		# ligthweight tag
+  git show v1.0.6rc1
   git checkout production
-  git merge v1.06
+  git merge v1.0.6rc1
+  git tag -a -m'release v1.0.6' v1.0.6 	# annotated tag
+  git show v1.0.6
+  git describe production	# "v1.0.6"
 
 
 ________
